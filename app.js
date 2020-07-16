@@ -9,7 +9,11 @@
     //UI Controller
     var UIController = (function() {
 
-        //Some code
+        return {
+            getInput: function() {
+                var type = document.querySelector('.add__type').value;
+            }
+        }
 
     })();
 
