@@ -5,6 +5,21 @@
             this.id = id;
             this.description = description;
             this.value = value;
+            this.percentage = -1;
+        };
+
+        Expense.prototype.calculatePercentage = function(totalIncome) {
+
+            if (totalIncome > 0){
+            this.percentage = Math.round((this.value / totalIncome) * 100);
+            }else {
+                this.percentage = -1;
+            }
+
+        };
+
+        Expense.prototype.getPercentage = function() {
+            return this.percentage;
         };
 
         var Income = function(id, description, value) {
@@ -59,6 +74,21 @@
                 return newItem;
             },
 
+            deleteItem: function(type, id) {
+                var ids, index;
+                
+                ids = data.allItems[type].map(function(curr){
+                    return curr.id;  
+                });
+                
+                index = ids.indexOf(id);
+
+                if (index !== -1){
+                    data.allItems[type].splice(index, 1);
+                }
+
+            },
+
             calculateBudget: function() {
 
                 //calculate total income and expenses
@@ -75,6 +105,24 @@
                 }else {
                     data.percentage = -1;
                 }
+            },
+
+            calculatePercentages: function() {
+
+                data.allItems.exp.forEach(function(cur) {
+                    cur.calculatePercentage(data.totals.inc);
+                });
+
+            },
+
+            getPercentages: function() {
+
+                var allPerc = data.allItems.exp.map(function(cur) {
+                    return cur.getPercentage();
+
+                });
+                return allPerc;
+
             },
 
             getBudget: function() {
@@ -107,7 +155,8 @@
             budgetLabel: '.budget__value',
             incomeLabel: '.budget__income--value',
             expensesLabel: '.budget__expenses--value',
-            percentageLabel: '.budget__expenses--percentage'
+            percentageLabel: '.budget__expenses--percentage',
+            container: '.container'
         };
 
         return {
@@ -126,11 +175,11 @@
                 if (type === 'inc'){
                     element = DOMstrings.incomeContainer;
 
-                    html = '<div class="item clearfix" id="income-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div> </div></div>';
+                    html = '<div class="item clearfix" id="inc-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div> </div></div>';
                 }else if (type === 'exp'){
                     element = DOMstrings.expensesContainer;
 
-                    html = '<div class="item clearfix" id="expense-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__percentage">21%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>'
+                    html = '<div class="item clearfix" id="exp-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__percentage">21%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>'
                 }
 
 
@@ -142,6 +191,13 @@
                 //Insert the HTML to the DOM
                 document.querySelector(element).insertAdjacentHTML('beforeend', newHtml)
 
+
+            },
+
+            deleteListItem: function(selectorID) {
+
+                var el = document.getElementById(selectorID);
+                el.parentNode.removeChild(el);
 
             },
 
@@ -194,6 +250,8 @@
                    ctrlAddItem();
                 }
             });
+
+            document.querySelector(DOM.container).addEventListener('click', ctrlDeleteItem);
         }
 
         var updateBudget = function() {
@@ -204,6 +262,19 @@
             var budget = budgetCtrl.getBudget();
             // 3. Display the budget on the UI
             UICtrl.displayBudget(budget);
+
+        };
+
+        var updatePercentages = function() {
+
+            // 1. calculate percentages
+            budgetCtrl.calculatePercentages();
+
+            // 2. Read perecentages from the budget controller
+            var percentages = budgetCtrl.getPercentages();
+
+            // 3. update the UI with the new percentages
+            console.log(percentages);
 
         }
 
@@ -226,8 +297,33 @@
 
                 // 5. Calculate and update budget
                 updateBudget();
+
+                // 6. Calculate and update the percentages
+                updatePercentages();
             }
 
+        };
+
+        var ctrlDeleteItem = function(event) {
+            var itemID, splitID, type, ID;
+
+            itemID = (event.target.parentNode.parentNode.parentNode.parentNode.id);
+
+            splitID = itemID.split('-');
+            type = splitID[0];
+            ID = parseInt(splitID[1]);
+
+            // 1. delete item from the data structure
+            budgetCtrl.deleteItem(type, ID);
+
+            // 2. delete the item from the UI
+            UICtrl.deleteListItem(itemID);
+
+            // 3. update and show the new budget
+            updateBudget();
+
+            // 4. calculate and update the percentages
+            updatePercentages();
         };
 
         return {
